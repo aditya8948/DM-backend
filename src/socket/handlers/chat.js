@@ -1,9 +1,20 @@
 const { ChatService } = require('../../services');
 
+const getPersonalRoomId = (user1, user2) => {
+  const u1 = Number(user1);
+  const u2 = Number(user2);
+  return `room_${Math.min(u1, u2)}_${Math.max(u1, u2)}`;
+};
+
 module.exports = (io, socket) => {
+  socket.on('join_personal_room', ({ userId, receiverId }) => {
+    const roomId = getPersonalRoomId(userId, receiverId);
+    socket.join(roomId);
+    console.log(`Socket ${socket.id} joined personal room: ${roomId}`);
+  });
+
   socket.on('join', (userId) => {
     socket.join(`user_${userId}`);
-    console.log(`User ${userId} joined room user_${userId}`);
   });
 
   socket.on('send_message', async (data, callback) => {
@@ -21,8 +32,8 @@ module.exports = (io, socket) => {
         message
       });
 
-      io.to(`user_${receiverId}`).emit('receive_message', savedMessage);
-      io.to(`user_${senderId}`).emit('receive_message', savedMessage);
+      const roomId = getPersonalRoomId(senderId, receiverId);
+      io.to(roomId).emit('receive_message', savedMessage);
 
       if (callback) callback({ status: 'ok', data: savedMessage });
     } catch (err) {
