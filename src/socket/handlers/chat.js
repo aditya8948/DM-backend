@@ -7,10 +7,14 @@ const getPersonalRoomId = (user1, user2) => {
 };
 
 module.exports = (io, socket) => {
+  socket.on('join_room', (roomId) => {
+    socket.join(roomId);
+    console.log(`Socket ${socket.id} joined room: ${roomId}`);
+  });
+
   socket.on('join_personal_room', ({ userId, receiverId }) => {
     const roomId = getPersonalRoomId(userId, receiverId);
     socket.join(roomId);
-    console.log(`Socket ${socket.id} joined personal room: ${roomId}`);
   });
 
   socket.on('join', (userId) => {
@@ -19,23 +23,37 @@ module.exports = (io, socket) => {
 
   socket.on('send_message', async (data, callback) => {
     try {
-      const { senderId, receiverId, message } = data;
+      const { senderId, receiverId, message, roomId } = data;
 
-      if (!senderId || !receiverId || !message) {
+      if (!message || (!roomId && (!senderId || !receiverId))) {
         if (callback) callback({ error: 'Missing required fields' });
         return;
       }
 
-      const savedMessage = await ChatService.sendMessage({
-        senderId: Number(senderId),
-        receiverId: Number(receiverId),
-        message
-      });
+      let savedMessage = null;
+      if (senderId && receiverId) {
+        try {
+          savedMessage = await ChatService.sendMessage({
+            senderId: Number(senderId),
+            receiverId: Number(receiverId),
+            message
+          });
+        } catch (e) {
+          console.error(e);
+        }
+      }
 
-      const roomId = getPersonalRoomId(senderId, receiverId);
-      io.to(roomId).emit('receive_message', savedMessage);
+      const targetRoom = roomId || getPersonalRoomId(senderId, receiverId);
+      const payload = savedMessage || {
+        id: Date.now() + Math.random().toString(36).substring(2, 9),
+        senderId,
+        message,
+        createdAt: new Date()
+      };
 
-      if (callback) callback({ status: 'ok', data: savedMessage });
+      io.to(targetRoom).emit('new_message', payload);
+
+      if (callback) callback({ status: 'ok', data: payload });
     } catch (err) {
       console.error('Socket message error:', err);
       if (callback) callback({ error: err.message });
