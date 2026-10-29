@@ -44,9 +44,17 @@ module.exports = (io, socket) => {
       }
 
       const targetRoom = roomId || getPersonalRoomId(senderId, receiverId);
-      const payload = savedMessage || {
+      const payload = savedMessage ? {
+        id: savedMessage.id,
+        senderId: savedMessage.senderId,
+        receiverId: savedMessage.receiverId,
+        message: savedMessage.message,
+        createdAt: savedMessage.createdAt,
+        senderName: data.senderName || null
+      } : {
         id: Date.now() + Math.random().toString(36).substring(2, 9),
         senderId,
+        senderName: data.senderName || null,
         message,
         createdAt: new Date()
       };

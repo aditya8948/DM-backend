@@ -7,6 +7,7 @@ const { authMiddleware } = require('../../middleware');
 // Auth routes
 router.post('/signup', (req, res) => AuthController.signup(req, res));
 router.post('/login', (req, res) => AuthController.login(req, res));
+router.get('/users', authMiddleware, (req, res) => AuthController.getUsers(req, res));
 
 // Chat routes (Protected by JWT)
 router.post('/messages', authMiddleware, (req, res) => ChatController.sendMessage(req, res));

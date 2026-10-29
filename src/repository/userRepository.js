@@ -34,6 +34,17 @@ class UserRepository {
       attributes: { exclude: ['password'] }
     });
   }
+
+  async findAllUsers(excludeId) {
+    const where = {};
+    if (excludeId) {
+      where.id = { [Op.ne]: excludeId };
+    }
+    return await User.findAll({
+      where,
+      attributes: ['id', 'name', 'email', 'phone']
+    });
+  }
 }
 
 module.exports = UserRepository;

@@ -67,6 +67,10 @@ class AuthService {
       expiresIn: '7d'
     });
   }
+
+  async getAllUsers(currentUserId) {
+    return await UserRepository.findAllUsers(currentUserId);
+  }
 }
 
 module.exports = AuthService;

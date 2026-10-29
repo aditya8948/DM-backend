@@ -40,6 +40,16 @@ class AuthController {
       });
     }
   }
+  async getUsers(req, res) {
+    try {
+      const users = await AuthService.getAllUsers(req.user.userId);
+      return res.status(200).json({ users });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        error: error.message || 'Internal server error'
+      });
+    }
+  }
 }
 
 module.exports = AuthController;
