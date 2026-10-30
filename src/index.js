@@ -14,9 +14,10 @@ const server = http.createServer(app);
 app.use(cors());
 app.use(express.json());
 
-app.use('/api', routes);
+const io = initSocket(server);
+app.set('io', io);
 
-initSocket(server);
+app.use('/api', routes);
 
 async function startServer() {
   try {

@@ -1,4 +1,4 @@
-const { ChatService } = require('../services');
+const { ChatService, S3Service } = require('../services');
 const { UserRepository } = require('../repository');
 
 class ChatController {
@@ -11,7 +11,6 @@ class ChatController {
         return res.status(400).json({ error: 'receiverId is required' });
       }
 
-      // Check if receiver exists in the database
       const receiver = await UserRepository.findById(receiverId);
       if (!receiver) {
         return res.status(404).json({
@@ -49,6 +48,47 @@ class ChatController {
     } catch (error) {
       return res.status(error.statusCode || 500).json({
         error: error.message || 'Internal server error'
+      });
+    }
+  }
+
+  async uploadMedia(req, res) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No media file provided' });
+      }
+
+      const senderId = req.user.userId;
+      const { roomId, receiverId, message } = req.body;
+      const sender = await UserRepository.findById(senderId);
+      const senderName = sender ? sender.name : 'User';
+
+      const uploadResult = await S3Service.uploadFile(req.file);
+
+      const payload = {
+        id: Date.now() + Math.random().toString(36).substring(2, 9),
+        senderId,
+        senderName,
+        receiverId: receiverId ? Number(receiverId) : null,
+        message: message || '',
+        fileUrl: uploadResult.fileUrl,
+        fileName: uploadResult.fileName,
+        fileType: uploadResult.fileType,
+        createdAt: new Date()
+      };
+
+      const io = req.app.get('io');
+      if (io && roomId) {
+        io.to(roomId).emit('new_message', payload);
+      }
+
+      return res.status(200).json({
+        message: 'File uploaded successfully',
+        data: payload
+      });
+    } catch (error) {
+      return res.status(error.statusCode || 500).json({
+        error: error.message || 'Failed to upload media'
       });
     }
   }

@@ -25,13 +25,13 @@ module.exports = (io, socket) => {
     try {
       const { senderId, receiverId, message, roomId } = data;
 
-      if (!message || (!roomId && (!senderId || !receiverId))) {
+      if ((!message && !data.fileUrl) || (!roomId && (!senderId || !receiverId))) {
         if (callback) callback({ error: 'Missing required fields' });
         return;
       }
 
       let savedMessage = null;
-      if (senderId && receiverId) {
+      if (senderId && receiverId && message) {
         try {
           savedMessage = await ChatService.sendMessage({
             senderId: Number(senderId),
@@ -50,12 +50,19 @@ module.exports = (io, socket) => {
         receiverId: savedMessage.receiverId,
         message: savedMessage.message,
         createdAt: savedMessage.createdAt,
-        senderName: data.senderName || null
+        senderName: data.senderName || null,
+        fileUrl: data.fileUrl || null,
+        fileName: data.fileName || null,
+        fileType: data.fileType || null
       } : {
         id: Date.now() + Math.random().toString(36).substring(2, 9),
         senderId,
         senderName: data.senderName || null,
-        message,
+        receiverId: receiverId ? Number(receiverId) : null,
+        message: message || '',
+        fileUrl: data.fileUrl || null,
+        fileName: data.fileName || null,
+        fileType: data.fileType || null,
         createdAt: new Date()
       };
 
